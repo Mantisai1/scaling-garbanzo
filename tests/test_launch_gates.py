@@ -15,7 +15,7 @@ import time
 
 import pytest
 
-os.environ["DATABASE_URL"] = "sqlite:///./test_gates.db"
+os.environ.setdefault("DATABASE_URL", "sqlite:///./test_gates.db")
 os.environ["MANTIS_BOOTSTRAP_TOKEN"] = "test-token"
 for f in ("test_gates.db",):
     if os.path.exists(f): os.remove(f)
@@ -238,3 +238,15 @@ def test_8_every_action_is_in_the_audit_log():
     assert not any(e["action"] == "release.promote" for e in theirs)
     # Audit table has no update/delete endpoints.
     assert client.delete("/v1/admin/audit", headers=h(S["admin"])).status_code == 405
+
+
+def test_9_every_console_endpoint_renders():
+    """Regression: every read endpoint the console calls must return 200 on whichever database is configured
+    (Postgres returns Decimal for aggregates where SQLite returns float)."""
+    for path in ("/v1/traces?limit=200", "/v1/analytics/breakdown?by=model", "/v1/analytics/breakdown?by=kind",
+                 "/v1/analytics/breakdown?by=provider", "/v1/analytics/breakdown?by=release", "/v1/eval-runs", "/v1/releases",
+                 "/v1/annotations", "/v1/training-jobs", "/v1/candidates", "/v1/datasets", "/v1/agent-configs",
+                 "/v1/promotion-policies", "/v1/training-signals", "/v1/admin/audit", "/v1/admin/projects"):
+        r = client.get(path, headers=h(S["viewer"]))
+        assert r.status_code == 200, f"{path} -> {r.status_code} {r.text}"
+        r.json()

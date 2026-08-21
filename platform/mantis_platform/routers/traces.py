@@ -42,9 +42,9 @@ def list_traces(project_id: str | None = None, session_id: str | None = None, us
     out = []
     for tid, st, en, n, cost, it, ot, errs, sess, user, rel in agg:
         root = db.query(Span).filter(Span.project_id == pid, Span.trace_id == tid, Span.parent_span_id.is_(None)).first()
-        out.append({"trace_id": tid, "name": root.name if root else "(no root)", "start_ns": st,
-                    "duration_ms": round((en - st) / 1e6, 3), "span_count": n, "cost_usd": round(cost or 0, 6),
-                    "input_tokens": it or 0, "output_tokens": ot or 0, "has_error": bool(errs),
+        out.append({"trace_id": tid, "name": root.name if root else "(no root)", "start_ns": int(st),
+                    "duration_ms": round((int(en) - int(st)) / 1e6, 3), "span_count": int(n), "cost_usd": round(float(cost or 0), 6),
+                    "input_tokens": int(it or 0), "output_tokens": int(ot or 0), "has_error": bool(errs),
                     "session_id": sess, "user_ref": user, "release": rel})
     return out
 
@@ -95,5 +95,6 @@ def breakdown(by: str = "model", project_id: str | None = None, p: Principal = D
     rows = (db.query(col, func.count(Span.id), func.avg(Span.end_ns - Span.start_ns), func.sum(Span.cost_usd),
                      func.sum(case((Span.status == "ERROR", 1), else_=0)))
             .filter(Span.project_id == pid).group_by(col).all())
-    return [{by: k, "spans": n, "avg_latency_ms": round((lat or 0) / 1e6, 2), "cost_usd": round(c or 0, 6),
-             "errors": e, "error_rate": round(e / n, 4) if n else 0} for k, n, lat, c, e in rows]
+    # Postgres returns Decimal for AVG/SUM; normalise to float so JSON and arithmetic behave identically across engines.
+    return [{by: k, "spans": int(n), "avg_latency_ms": round(float(lat or 0) / 1e6, 2), "cost_usd": round(float(c or 0), 6),
+             "errors": int(e or 0), "error_rate": round(int(e or 0) / int(n), 4) if n else 0} for k, n, lat, c, e in rows]
