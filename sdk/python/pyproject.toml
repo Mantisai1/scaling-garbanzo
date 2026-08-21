@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mantis-sdk"
+version = "0.1.0"
+description = "OpenTelemetry-native instrumentation SDK for the Mantis agent learning and reliability platform"
+requires-python = ">=3.10"
+dependencies = [
+  "opentelemetry-api>=1.25",
+  "opentelemetry-sdk>=1.25",
+  "opentelemetry-exporter-otlp-proto-http>=1.25",
+]
+
+[project.optional-dependencies]
+openai = ["openai>=1.0"]
+anthropic = ["anthropic>=0.30"]
+
+[tool.setuptools.packages.find]
+include = ["mantis_sdk*"]

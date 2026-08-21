@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.db
+*.egg-info/
+.env
+demo/.demo_state.json
